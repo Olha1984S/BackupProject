@@ -1,0 +1,7 @@
+VERSION = "1.0.0"
+
+STORAGE_LOCAL = "Local"
+STORAGE_USB = "USB"
+STORAGE_NETWORK = "Network"
+
+SNAPSHOT_NAME_FORMAT = "%Y-%m-%d_%H-%M-%S"
