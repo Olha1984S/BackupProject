@@ -1,647 +1,568 @@
 # DECISIONS
 
-Документ содержит архитектурные решения, принятые в ходе разработки Backup Project.
+This document records the architectural decisions made during the development of Backup Project.
 
-Каждое решение считается частью архитектуры проекта и не изменяется без
-осознанного пересмотра.
-
+Each decision is considered part of the project architecture and must not be changed without deliberate review.
 
 ---
-
 
 ## 2026-08-07
 
-# Решение №1
+# Decision No. 1
 
-## Безопасность данных имеет абсолютный приоритет
+## Data Safety Has Absolute Priority
 
-### Решение
+### Decision
 
-Если программа не может гарантировать корректное выполнение резервного
-копирования, она должна завершить работу, не изменяя существующие резервные
-копии.
+If the application cannot guarantee that a backup will be completed correctly, it must stop without modifying existing backups.
 
-### Причина
+### Reason
 
-Потеря одной новой резервной копии значительно менее опасна, чем повреждение
-уже существующих данных.
+Losing one new backup is significantly less dangerous than damaging data that already exists.
 
-### Последствия
+### Consequences
 
-- при любой критической ошибке резервное копирование прекращается;
-- существующие резервные копии остаются без изменений.
-
+- Backup is stopped whenever a critical error occurs.
+- Existing backups remain unchanged.
 
 ---
 
+# Decision No. 2
 
-# Решение №2
+## Design First, Code Second
 
-## Сначала проектирование — потом код
+### Decision
 
-### Решение
+Before implementing each new feature, its behavior is designed first, the documentation is updated next, and only then is the code written.
 
-Перед реализацией каждой новой функции сначала проектируется её поведение,
-после чего обновляется документация, и только затем пишется код.
+### Reason
 
-### Причина
+This approach makes it possible to make architectural decisions before implementation and reduces the amount of rework later.
 
-Такой подход позволяет принимать архитектурные решения до появления
-реализации и уменьшает количество последующих переделок.
+### Consequences
 
-### Последствия
+Before each new function is written, the following are discussed:
 
-Перед написанием каждой новой функции обсуждаются:
-
-- назначение;
-- входные данные;
-- выходные данные;
-- сценарии работы;
-- возможные ошибки;
-- место функции в общей архитектуре.
-
+- purpose;
+- input data;
+- output data;
+- operating scenarios;
+- possible errors;
+- the function's place in the overall architecture.
 
 ---
 
+# Decision No. 3
 
-# Решение №3
+## Separation of Logic and User Interface
 
-## Разделение логики и пользовательского интерфейса
+### Decision
 
-### Решение
+All business logic must be completely separated from the user interface.
 
-Вся бизнес-логика должна быть полностью отделена от пользовательского
-интерфейса.
+### Reason
 
-### Причина
+This makes it possible to:
 
-Это позволит:
+- run the application automatically;
+- use different interfaces;
+- test the logic independently of the interface;
+- change the interface without changing the backup algorithms.
 
-- запускать программу автоматически;
-- использовать различные интерфейсы;
-- тестировать логику независимо от интерфейса;
-- изменять интерфейс без изменения алгоритмов резервного копирования.
+### Consequences
 
-### Последствия
-
-Модули резервного копирования не содержат код взаимодействия с пользователем.
-
+The backup modules do not contain code for interacting with the user.
 
 ---
 
+# Decision No. 4
 
-# Решение №4
+## Support for Multiple Storage Types
 
-## Поддержка нескольких типов хранилищ
+### Decision
 
-### Решение
+Backup Project supports multiple destination storage types.
 
-Backup Project поддерживает несколько типов хранилищ назначения.
+Each type may have its own availability checks.
 
-Для каждого типа допускаются собственные проверки доступности.
+Once these checks succeed, the subsequent backup algorithm remains the same.
 
-После успешного завершения проверок дальнейший алгоритм резервного
-копирования остаётся одинаковым.
+### Reason
 
-### Причина
+The backup logic must not depend on a specific storage type.
 
-Логика резервного копирования не должна зависеть от конкретного типа
-хранилища.
+### Consequences
 
-### Последствия
-
-Добавление нового типа хранилища не требует изменения алгоритма резервного
-копирования.
-
+Adding a new storage type does not require changes to the backup algorithm.
 
 ---
 
+# Decision No. 5
 
-# Решение №5
+## A Single Access Point for Settings
 
-## Единая точка доступа к настройкам
+### Decision
 
-### Решение
+All user settings are accessed only through the `config.py` module.
 
-Все пользовательские настройки доступны только через модуль `config.py`.
+### Reason
 
-### Причина
+In the future, the way settings are stored may change without requiring changes to the rest of the application.
 
-В дальнейшем способ хранения настроек может измениться без изменения
-остальной части программы.
+### Consequences
 
-### Последствия
+At the current stage, settings are defined directly in `config.py`.
 
-На текущем этапе настройки располагаются непосредственно в `config.py`.
-
-Позже они могут быть перенесены во внешний файл конфигурации.
-
+Later, they may be moved to an external configuration file.
 
 ---
 
+# Decision No. 6
 
-# Решение №6
+## User Messages Are Separate from Logic
 
-## Пользовательские сообщения отделены от логики
+### Decision
 
-### Решение
+All text messages shown to the user are stored in the `messages.py` module.
 
-Все текстовые сообщения пользователю располагаются в модуле `messages.py`.
+### Reason
 
-### Причина
+The application logic should not contain user-facing text strings.
 
-Логика программы не должна содержать текстовые строки.
+### Consequences
 
-### Последствия
-
-- упрощается локализация;
-- сообщения изменяются независимо от алгоритмов программы.
-
+- Localization is easier.
+- Messages can be changed independently of the application algorithms.
 
 ---
 
+# Decision No. 7
 
-# Решение №7
+## One Module, One Responsibility
 
-## Один модуль — одна ответственность
+### Decision
 
-### Решение
+Each module is responsible for one major application subsystem.
 
-Каждый модуль отвечает только за одну крупную подсистему программы.
+### Reason
 
-### Причина
+This reduces coupling between parts of the project and makes maintenance easier.
 
-Это уменьшает связность между частями проекта и облегчает сопровождение.
+### Consequences
 
-### Последствия
+For example:
 
-Например:
-
-- `app.py` — координация программы;
-- `backup_manager.py` — резервное копирование;
-- `storage_validator.py` — проверки хранилища;
-- `project_initializer.py` — подготовка структуры проекта;
-- `history_manager.py` — управление History.
-
+- `app.py` — application coordination;
+- `backup_manager.py` — backup operations;
+- `storage_validator.py` — storage validation;
+- `project_initializer.py` — project structure preparation;
+- `history_manager.py` — History management.
 
 ---
 
+# Decision No. 8
 
-# Решение №8
+## Configuration Validation and Storage Validation Are Separate Stages
 
-## Проверка конфигурации и проверка хранилища — разные этапы
+### Decision
 
-### Решение
+User settings are validated separately from the availability of the selected storage.
 
-Проверка пользовательских настроек выполняется отдельно от проверки
-доступности выбранного хранилища.
+### Reason
 
-### Причина
+Configuration rarely changes.
 
-Конфигурация изменяется редко.
+Storage availability may change before each application run.
 
-Доступность хранилища может изменяться перед каждым запуском программы.
+### Consequences
 
-### Последствия
-
-Каждая проверка отвечает только за собственную задачу.
-
+Each validation step is responsible only for its own task.
 
 ---
 
+# Decision No. 9
 
-# Решение №9
+## The Project Structure Is Created Automatically
 
-## Рабочая структура проекта создаётся автоматически
+### Decision
 
-### Решение
+The user selects only the location of the project root directory.
 
-Пользователь выбирает только расположение корневого каталога проекта.
+The internal directories are created automatically by the application.
 
-Внутренние каталоги создаются программой автоматически.
+### Consequences
 
-### Последствия
+When the application starts, it creates any missing directories:
 
-При запуске программа создаёт отсутствующие каталоги:
+- `BackupProject`
+- `Current`
+- `History`
 
-- BackupProject
-- Current
-- History
-
-Если каталог уже существует, он не изменяется.
-
+If a directory already exists, it is not modified.
 
 ---
 
+# Decision No. 10
 
-# Решение №10
+## Free Space Is Checked After Changes Are Analyzed
 
-## Проверка свободного места выполняется после анализа изменений
+### Decision
 
-### Решение
+The required free space is estimated after comparing `Source` and `Current`.
 
-Оценка необходимого свободного места выполняется после сравнения Source и
-Current.
+### Reason
 
-### Причина
+Before analyzing the changes, it is not possible to determine how much data will need to be written.
 
-До анализа изменений невозможно определить объём данных, который потребуется
-записать.
+### Consequences
 
-### Последствия
-
-Проверка основывается на реальном объёме будущих операций.
-
+The check is based on the actual volume of the planned operations.
 
 ---
 
+# Decision No. 11
 
-# Решение №11
+## Current Is Always a Full Snapshot of Source
 
-## Current всегда является полным снимком Source
+### Decision
 
-### Решение
+The `Current` directory always contains a full copy of the `Source` directory as it was at the time of the last successful backup.
 
-Каталог `Current` всегда содержит полную копию каталога Source на момент
-последнего успешного резервного копирования.
+Before it is updated, the entire contents of `Current` are saved to `History`.
 
-Перед обновлением содержимое `Current` полностью сохраняется в `History`.
+After that, `Current` is fully updated with the contents of `Source`.
 
-После этого `Current` полностью обновляется содержимым Source.
+### Reason
 
-### Причина
+A full snapshot makes the backup structure simple, clear, and predictable.
 
-Полный снимок делает структуру резервных копий простой, понятной и
-предсказуемой.
+After a successful backup, the user always knows that `Current` fully matches `Source`.
 
-После успешного резервного копирования пользователь всегда знает, что
-`Current` полностью соответствует Source.
+### Consequences
 
-### Последствия
-
-- `History` хранит предыдущие полные состояния;
-- `Current` не содержит частично обновлённых данных;
-- восстановление последней резервной копии не требует дополнительной логики.
-
+- `History` stores previous full states.
+- `Current` does not contain partially updated data.
+- Restoring the latest backup does not require additional logic.
 
 ---
 
+# Decision No. 12
 
-# Решение №12
+## File Comparison Is for Analysis, Not for Deciding What to Copy
 
-## Сравнение файлов выполняется для анализа, а не для принятия решения о копировании
+### Decision
 
-### Решение
+Comparing `Source` and `Current` is used to analyze changes, create logs, and calculate the volume of operations.
 
-Сравнение Source и Current используется для анализа изменений, журналирования
-и расчёта объёма операций.
+The comparison results do not determine which files will be copied.
 
-Результаты сравнения не определяют, какие файлы будут копироваться.
+### Reason
 
-### Причина
+Backup Project creates a new full snapshot of `Source`, regardless of how many changes have occurred.
 
-Backup Project создаёт новый полный снимок Source независимо от количества
-изменений.
+### Consequences
 
-### Последствия
+The comparison makes it possible to:
 
-Сравнение позволяет:
+- identify new files;
+- identify deleted files;
+- identify matching files;
+- compare the properties of matching files;
+- generate a detailed backup log.
 
-- определить новые файлы;
-- определить удалённые файлы;
-- определить совпадающие файлы;
-- сравнить характеристики совпадающих файлов;
-- сформировать подробный журнал резервного копирования.
-
-При этом обновление `Current` выполняется полностью после сохранения его
-предыдущего состояния в `History`.
-
+However, `Current` is fully updated only after its previous state has been saved to `History`.
 
 ---
 
+# Decision No. 13
 
-# Решение №13
+## The Free Space Check Does Not Control the Backup Process
 
-## Проверка свободного места не управляет резервным копированием
+### Decision
 
-### Решение
+The free space check function is responsible only for determining whether enough free space is available.
 
-Функция проверки свободного места отвечает только за определение достаточности свободного пространства.
+It does not interact with the user, pause application execution, or decide how the backup process should proceed.
 
-Она не взаимодействует с пользователем, не приостанавливает выполнение программы и не принимает решений о дальнейшем ходе резервного копирования.
+### Reason
 
-### Причина
+The free space check is part of the business logic.
 
-Проверка свободного места является частью бизнес-логики.
+User interaction depends on the interface being used (console, GUI, etc.) and must be kept separate from the backup logic.
 
-Взаимодействие с пользователем зависит от используемого интерфейса (консоль, GUI и т.д.) и должно быть отделено от логики резервного копирования.
+### Consequences
 
-### Последствия
-алгоритм резервного копирования не зависит от типа интерфейса;
-в консольной версии программа может завершить работу после сообщения об ошибке;
-в GUI возможно реализовать ожидание пользователя, повторную проверку свободного места и продолжение резервного копирования без изменения бизнес-логики.
-
-
----
-
-
-# Решение №14
-
-## Current переносится в History только при наличии корректного рабочего снимка.
-
-### Причина
-
-После успешного сохранения Current в History каталог Current очищается перед созданием нового снимка.
-
-Если копирование Source → Current завершилось ошибкой, Current может оказаться пустым или неполным.
-
-Перенос такого каталога в History недопустим.
-
-### Последствия
-
-резервные копии в History всегда содержат только завершённые снимки;
-после неудачного копирования следующий запуск не создаёт пустой snapshot;
-программа автоматически создаёт новый Current из Source.
-
+- The backup algorithm does not depend on the interface type.
+- In the console version, the application can exit after displaying an error message.
+- In a GUI, it is possible to implement waiting for user input, checking free space again, and continuing the backup without changing the business logic.
 
 ---
 
+# Decision No. 14
 
-# Решение №15
+## Current Is Moved to History Only If It Contains a Valid Working Snapshot
 
-## Очистка Current является отдельным этапом резервного копирования
+### Reason
 
-### Решение
+After `Current` has been saved successfully to `History`, the `Current` directory is cleared before a new snapshot is created.
 
-Перед созданием нового снимка Source каталог `Current` очищается как самостоятельный этап резервного копирования.
+If copying `Source` → `Current` fails, `Current` may be empty or incomplete.
 
-Очистка удаляет только содержимое каталога.
+Moving such a directory to `History` is not allowed.
 
-Каталог `Current` не удаляется.
+### Consequences
 
-### Причина
-
-Сохранение каталога упрощает архитектуру проекта, исключает необходимость повторного создания рабочей структуры и уменьшает количество операций файловой системы.
-
-Разделение очистки и последующего копирования позволяет независимо контролировать каждый этап резервного копирования.
-
-### Последствия
-
-- `Current` очищается только после успешного создания и проверки snapshot в `History`;
-- каталог `Current` всегда существует;
-- функция очистки отвечает только за подготовку каталога к копированию;
-- создание нового snapshot выполняется отдельным этапом.
-
+- Backups in `History` contain only completed snapshots.
+- After a failed copy, the next run does not create an empty snapshot.
+- The application automatically creates a new `Current` from `Source`.
 
 ---
 
+# Decision No. 15
 
-# Решение №16
+## Clearing Current Is a Separate Backup Stage
 
-## Общие dataclass размещаются в отдельном модуле
+### Decision
 
-### Решение
+Before creating a new snapshot of `Source`, the `Current` directory is cleared as a separate stage of the backup process.
 
-Все структуры данных, используемые несколькими модулями проекта, размещаются в модуле `project_dataclasses.py`.
+Clearing removes only the contents of the directory.
 
-### Причина
+The `Current` directory itself is not deleted.
 
-Dataclass не относятся к бизнес-логике отдельных подсистем и являются общими моделями данных проекта.
+### Reason
 
-### Последствия
+Keeping the directory simplifies the project architecture, eliminates the need to recreate the working structure, and reduces the number of file-system operations.
 
-- уменьшается связанность модулей;
-- исключается дублирование dataclass;
-- новые структуры данных (например CopyResult) добавляются в один модуль.
+Separating clearing from the subsequent copy makes it possible to control each backup stage independently.
 
+### Consequences
 
----
-
-
-# Решение №17
-
-## Проверка каталогов является универсальной операцией
-
-### Решение
-
-Проверка каталогов реализуется одной универсальной функцией `verify_directories()`.
-
-Функция не зависит от назначения каталогов и может использоваться различными подсистемами проекта.
-
-### Причина
-
-Проверка структуры каталогов выполняется одинаковым алгоритмом независимо от того, сравниваются ли Source и Current или Current и History.
-
-### Последствия
-
-- устраняется дублирование кода;
-- проверка каталогов имеет единую реализацию;
-- history_manager.py и backup_manager.py используют одну функцию проверки.
-
+- `Current` is cleared only after a snapshot has been successfully created and verified in `History`.
+- The `Current` directory always exists.
+- The clearing function is responsible only for preparing the directory for copying.
+- Creating the new snapshot is a separate stage.
 
 ---
 
+# Decision No. 16
 
-# Решение №18
+## Shared Dataclasses Are Stored in a Separate Module
 
-## Первый запуск не создаёт пустой snapshot History
+### Decision
 
-### Решение
+All data structures used by multiple project modules are defined in `project_dataclasses.py`.
 
-Перед сохранением Current в History программа проверяет, содержит ли Current хотя бы один файл.
+### Reason
 
-### Причина
+Dataclasses do not belong to the business logic of individual subsystems; they are shared project data models.
 
-Первый запуск программы не должен создавать пустой snapshot.
+### Consequences
 
-### Последствия
-
-первый запуск не создаёт записи в History;
-History всегда содержит только реальные резервные копии.
-
-
----
-
-
-# Решение №19
-## Количество snapshot ограничивается до создания нового snapshot
-
-### Решение
-
-Перед созданием нового snapshot программа удаляет самые старые snapshot до тех пор, пока количество snapshot не станет меньше MAX_HISTORY.
-
-### Причина
-
-После создания нового snapshot количество резервных копий не должно превышать значение MAX_HISTORY.
-
-Также программа должна автоматически исправлять ситуацию, если в каталоге History уже находится больше snapshot, чем допускает настройка.
-
-### Последствия
-
-после завершения резервного копирования количество snapshot никогда не превышает MAX_HISTORY;
-функция cleanup_history() автоматически восстанавливает корректное состояние History.
-
+- Module coupling is reduced.
+- Duplicate dataclasses are avoided.
+- New data structures (for example, `CopyResult`) are added to one module.
 
 ---
 
-# Решение №20
-## Snapshot определяется по формату имени
+# Decision No. 17
 
-### Решение
+## Directory Verification Is a General-Purpose Operation
 
-Snapshot в каталоге `History` распознаётся по имени, соответствующему формату:
+### Decision
+
+Directory verification is implemented by one general-purpose function, `verify_directories()`.
+
+The function does not depend on the purpose of the directories and can be used by different project subsystems.
+
+### Reason
+
+Directory structure is verified using the same algorithm whether `Source` and `Current` or `Current` and `History` are being compared.
+
+### Consequences
+
+- Code duplication is eliminated.
+- Directory verification has a single implementation.
+- `history_manager.py` and `backup_manager.py` use the same verification function.
+
+---
+
+# Decision No. 18
+
+## The First Run Does Not Create an Empty History Snapshot
+
+### Decision
+
+Before saving `Current` to `History`, the application checks whether `Current` contains at least one file.
+
+### Reason
+
+The first application run must not create an empty snapshot.
+
+### Consequences
+
+- The first run does not create an entry in `History`.
+- `History` contains only actual backups.
+
+---
+
+# Decision No. 19
+
+## The Snapshot Count Is Limited Before a New Snapshot Is Created
+
+### Decision
+
+Before creating a new snapshot, the application deletes the oldest snapshots until the number of snapshots is less than `MAX_HISTORY`.
+
+### Reason
+
+After the new snapshot is created, the number of backups must not exceed `MAX_HISTORY`.
+
+The application must also automatically correct the situation if `History` already contains more snapshots than the setting allows.
+
+### Consequences
+
+- After the backup finishes, the number of snapshots never exceeds `MAX_HISTORY`.
+- `cleanup_history()` automatically restores `History` to a valid state.
+
+---
+
+# Decision No. 20
+
+## A Snapshot Is Identified by Its Name Format
+
+### Decision
+
+A snapshot in `History` is identified by a name matching this format:
 
 ```text
 %Y-%m-%d_%H-%M-%S
 ```
 
-Только каталоги с таким форматом имени считаются snapshot и участвуют в:
+Only directories with names in this format are considered snapshots and included in:
 
-- подсчёте `MAX_HISTORY`;
-- сортировке snapshot;
-- выборе самого старого snapshot для удаления.
+- counting `MAX_HISTORY`;
+- sorting snapshots;
+- selecting the oldest snapshot for deletion.
 
-Файлы и каталоги с другими именами не считаются snapshot, не участвуют в управлении History и не удаляются программой.
+Files and directories with other names are not considered snapshots, are not included in History management, and are not deleted by the application.
 
-Если snapshot, выбранный для удаления, уже отсутствует к моменту удаления, программа повторно анализирует History и продолжает работу с актуальным состоянием каталога.
+If a snapshot selected for deletion is already missing when deletion is attempted, the application rechecks `History` and continues using the directory's current state.
 
-### Причина
+### Reason
 
-Пользователь или другая программа может изменить содержимое `History` между этапами работы Backup Project.
+The user or another application may change the contents of `History` while Backup Project is running.
 
-Программа должна работать только с объектами, которые может однозначно распознать как собственные snapshot. При этом она не должна удалять неизвестные пользователю объекты.
+The application must work only with objects it can unambiguously identify as its own snapshots. It must not delete objects unknown to the user.
 
-Формат имени snapshot содержит дату и время создания с точностью до секунды и используется программой как признак snapshot.
+The snapshot name format includes the creation date and time to the nearest second and is used by the application to identify snapshots.
 
-### Последствия
+### Consequences
 
-- переименованный snapshot перестаёт учитываться программой как snapshot;
-- пользовательские файлы и каталоги в `History` не влияют на `MAX_HISTORY`;
-- неизвестные объекты в `History` не удаляются программой;
-- если ожидаемый snapshot уже отсутствует, повторная проверка History позволяет продолжить работу без вмешательства пользователя, если количество распознанных snapshot находится в допустимом состоянии.
-
-
----
-
-# Решение №21
-## Невозможность удаления snapshot обрабатывается в зависимости от причины
-
-### Решение
-
-При удалении старого snapshot программа различает отсутствие snapshot
-и невозможность его удаления.
-
-Если snapshot уже отсутствует, `cleanup_history()` повторно анализирует
-`History` и продолжает работу с актуальным состоянием каталога.
-
-Если snapshot существует, но его удаление вызывает `PermissionError`,
-ошибка не поглощается в `history_manager.py` и передаётся на верхний уровень
-программы.
-
-`app.py` останавливает текущий запуск резервного копирования и сообщает
-пользователю о недостаточности прав доступа.
-
-Программа не пытается самостоятельно изменять права доступа или
-продолжать резервное копирование после этой ошибки.
-
-### Причина
-
-Причины требуют разного поведения.
-
-Отсутствующий snapshot является внешним изменением состояния `History`,
-которое можно безопасно компенсировать повторным анализом.
-
-Недостаток прав доступа не может быть безопасно устранён программой
-самостоятельно. Продолжение резервного копирования в таком состоянии
-может привести к некорректному управлению существующими резервными копиями.
-
-### Последствия
-
-- `FileNotFoundError` при удалении snapshot обрабатывается в `history_manager.py`;
-- `PermissionError` передаётся в `app.py`;
-- при `PermissionError` текущий backup прекращается;
-- существующие резервные копии не изменяются после возникновения критической ошибки;
-- пользователь получает понятное сообщение об ошибке;
-- модули резервного копирования не содержат пользовательского интерфейса.
-
+- A renamed snapshot is no longer recognized by the application as a snapshot.
+- User files and directories in `History` do not affect `MAX_HISTORY`.
+- Unknown objects in `History` are not deleted by the application.
+- If an expected snapshot is already missing, rechecking `History` allows the application to continue without user intervention, provided the number of recognized snapshots is within the allowed limit.
 
 ---
 
-# Решение №22
+# Decision No. 21
 
-## BackupProject_1.1 является стабильной контрольной версией
+## Failure to Delete a Snapshot Is Handled According to the Cause
 
-### Решение
+### Decision
 
-Версия BackupProject_1.1 фиксируется как стабильная контрольная
-версия перед началом разработки BackupProject_1.2.
+When deleting an old snapshot, the application distinguishes between a snapshot that is missing and one that cannot be deleted.
 
-### Состояние
+If the snapshot is already missing, `cleanup_history()` rechecks `History` and continues using the directory's current state.
 
-- 21 автоматический тест;
-- 21 тест успешно пройден;
-- 0 предупреждений pytest.
+If the snapshot exists but deletion raises `PermissionError`, the error is not suppressed in `history_manager.py`; it is propagated to the top level of the application.
 
-### Причина
+`app.py` stops the current backup run and informs the user that access permissions are insufficient.
 
-Перед дальнейшим развитием проекта необходимо иметь подтверждённую
-рабочую точку, с которой можно сравнивать последующие изменения.
+The application does not attempt to change permissions itself or continue the backup after this error.
 
-### Последствия
+### Reason
 
-Новые изменения начиная с версии 1.2 не должны изменять поведение,
-зафиксированное в 1.1, без осознанного пересмотра соответствующего
-архитектурного решения.
+These situations require different behavior.
 
+A missing snapshot is an external change to the state of `History` that can be handled safely by rechecking the directory.
+
+Insufficient permissions cannot be safely resolved by the application itself. Continuing the backup in this state could result in incorrect management of existing backups.
+
+### Consequences
+
+- `FileNotFoundError` during snapshot deletion is handled in `history_manager.py`.
+- `PermissionError` is propagated to `app.py`.
+- On `PermissionError`, the current backup is stopped.
+- Existing backups are not modified after a critical error occurs.
+- The user receives a clear error message.
+- The backup modules do not contain user-interface code.
 
 ---
 
+# Decision No. 22
+
+## BackupProject_1.1 Is the Stable Baseline Version
+
+### Decision
+
+BackupProject_1.1 is designated as the stable baseline version before development of BackupProject_1.2 begins.
+
+### Status
+
+- 21 automated tests;
+- 21 tests passed;
+- 0 pytest warnings.
+
+### Reason
+
+Before further development, the project needs a verified working baseline against which subsequent changes can be compared.
+
+### Consequences
+
+Changes introduced from version 1.2 onward must not alter the behavior established in version 1.1 unless the relevant architectural decision is deliberately reviewed.
+
 ---
 
-# Решение №23
+# Decision No. 23
 
-## Основная логика резервного копирования должна иметь автоматическое тестовое покрытие
+## Core Backup Logic Must Have Automated Test Coverage
 
-### Решение
+### Decision
 
-Перед переходом к следующей версии проекта основные функции и критические
-сценарии резервного копирования должны быть покрыты автоматическими тестами.
+Before moving to the next project version, the main functions and critical backup scenarios must be covered by automated tests.
 
-Тестирование должно проверять не только успешные сценарии, но и критические
-ошибки, способные привести к некорректному состоянию резервных данных.
+Testing must verify not only successful scenarios but also critical errors that could leave backup data in an invalid state.
 
-### Причина
+### Reason
 
-Backup Project работает с пользовательскими данными, поэтому корректность
-работы программы должна подтверждаться не только ручной проверкой, но и
-повторяемыми автоматическими тестами.
+Backup Project works with user data, so correct behavior must be demonstrated through repeatable automated tests as well as manual checks.
 
-Особое внимание уделяется сценариям, при которых ошибка может привести к
-частичному или некорректному backup.
+Particular attention is paid to scenarios in which an error could result in a partial or invalid backup.
 
-### Последствия
+### Consequences
 
-Перед переходом к следующей версии проекта выполняется полный набор
-автоматических тестов.
+The full automated test suite is run before moving to the next project version.
 
-Для BackupProject_1.1 контрольная точка включает:
+For BackupProject_1.1, the baseline includes:
 
-- 21 автоматический тест;
-- 21 успешно пройденный тест;
-- 0 предупреждений pytest.
+- 21 automated tests;
+- 21 tests passed;
+- 0 pytest warnings.
 
-В тестах проверяются:
+The tests cover:
 
-- инициализация проекта;
-- копирование файлов;
-- обработка ошибок копирования;
-- очистка частичного `Current`;
-- проверка свободного места;
-- прекращение backup при недостатке места;
-- создание и управление snapshot;
-- очистка `History`;
-- обработка отсутствующего snapshot;
-- обработка `PermissionError`;
-- проверка структуры каталогов;
-- проверка размера данных;
-- основной сценарий `start_backup()`.
+- project initialization;
+- file copying;
+- copy error handling;
+- clearing a partial `Current`;
+- free disk space checks;
+- stopping the backup when there is insufficient space;
+- snapshot creation and management;
+- `History` cleanup;
+- handling a missing snapshot;
+- handling `PermissionError`;
+- directory structure verification;
+- data size verification;
+- the main `start_backup()` scenario.

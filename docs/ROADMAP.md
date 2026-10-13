@@ -1,77 +1,77 @@
-# План разработки
+# Development Roadmap
 
-## Этап 1
+## Stage 1
 
-- [ ] структура проекта
-- [ ] настройки
-- [ ] проверка NAS
-- [ ] журнал
+- [ ] Project structure
+- [ ] Settings
+- [ ] NAS validation
+- [ ] Logging
 
 ---
 
-## Этап 2
+## Stage 2
 
-- [x] сравнение файлов
+- [x] File comparison
 - [x] Current
 - [x] History
 
 ---
 
-## Этап 3
+## Stage 3
 
-- [ ] открытые файлы
-- [x] очистка History
-
----
-## Этап 4
-
-- [ ] общая система обработки ошибок
-- [ ] восстановление после ошибок
-- [ ] журнал резервного копирования 
+- [ ] Open files
+- [x] History cleanup
 
 ---
-## Этап 5
+
+## Stage 4
+
+- [ ] General error-handling system
+- [ ] Recovery after errors
+- [ ] Backup log
+
+---
+
+## Stage 5
 
 - [ ] GUI
-- [ ] Планировщик Windows
+- [ ] Windows Task Scheduler
 
 ---
 
-## Этап 6
+## Stage 6
 
-- [ ] тестирование
-- [ ] перенос на другой компьютер
+- [ ] Testing
+- [ ] Transfer to another computer
 
+## Testing Baseline for BackupProject_1.1
 
-## Контрольная точка тестирования для BackupProject_1.1
+| Module | Tests | Result |
+| --- | ---: | --- |
+| `test_app.py` | 1 | Passed |
+| `test_backup_manager.py` | 7 | Passed |
+| `test_disk_space.py` | 3 | Passed |
+| `test_file_utils.py` | 3 | Passed |
+| `test_history_manager.py` | 6 | Passed |
+| `test_project_initializer.py` | 1 | Passed |
+| **Total** | **21** | **21 passed** |
 
-Модуль	                     Тестов      Результат
-test_app.py	                  1	         ✅
-test_backup_manager.py	      7	         ✅
-test_disk_space.py	          3	         ✅
-test_file_utils.py	          3	         ✅
-test_history_manager.py	      6	         ✅
-test_project_initializer.py	  1	         ✅
-Всего	                      21	     21 passed
+## GUI Stage
 
+- Insufficient free disk space dialog.
+- Pause the backup process.
+- Timer for waiting for user actions.
+- Check free disk space again.
+- Resume the backup after space has been freed.
 
-## Этап GUI
- Диалог нехватки свободного места.
- Приостановка резервного копирования.
- Таймер ожидания действий пользователя.
- Повторная проверка свободного места.
- Продолжение резервного копирования после освобождения места.
- 
-## Планируется добавить:
+## Planned Features
 
-- фильтрацию файлов по расширениям;
-- исключение временных файлов;
-- исключение скрытых файлов;
-- проверку контрольных сумм;
-- отображение прогресса копирования;
-- отображение скорости копирования;
-- отображение оставшегося времени;
-- возможность отмены копирования;
-- подробную статистику выполнения (CopyResult).
-
-
+- Filter files by extension.
+- Exclude temporary files.
+- Exclude hidden files.
+- Check file checksums.
+- Display copy progress.
+- Display copy speed.
+- Display remaining time.
+- Allow copying to be cancelled.
+- Detailed execution statistics (`CopyResult`).

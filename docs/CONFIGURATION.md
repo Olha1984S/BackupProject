@@ -1,13 +1,13 @@
-| Настройка                       | По умолчанию  | Может изменить пользователь | Комментарий         |
-| ------------------------------- | ------------- | --------------------------- | ------------------- |
-| Язык                            | English       | Да                          | В будущем           |
-| Интервал резервного копирования | 7 дней        | Да                          | Через GUI           |
-| Максимум копий                  | 10            | Да                          | Минимум 1           |
-| Источник                        | —             | Да                          | Выбор папки         |
-| NAS                             | —             | Да                          | Выбор папки         |
-| Формат отображения даты         | Европейский   | Да                          | Хранение всегда ISO |
-| Названия `Current` и `History`  | Фиксированные | Нет                         | Часть архитектуры   |
+| Setting | Default | User-configurable | Notes |
+| --- | --- | --- | --- |
+| Language | English | Yes | Planned for the future |
+| Backup interval | 7 days | Yes | Through the GUI |
+| Maximum number of backups | 10 | Yes | Minimum: 1 |
+| Source | — | Yes | Folder selection |
+| NAS | — | Yes | Folder selection |
+| Date display format | European | Yes | Dates are always stored in ISO format |
+| `Current` and `History` directory names | Fixed | No | Part of the architecture |
 
-| Настройка    | По умолчанию  | Может изменить пользователь | Комментарий           |
-| ------------ | ------------- | --------------------------- | --------------------- |
-| Storage Type | Network (NAS) | Да                          | Local / USB / Network |
+| Setting | Default | User-configurable | Notes |
+| --- | --- | --- | --- |
+| Storage Type | Network (NAS) | Yes | Local / USB / Network |

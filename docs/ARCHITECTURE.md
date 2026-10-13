@@ -1,387 +1,367 @@
-# Архитектура Backup Project
+# Backup Project Architecture
 
-## Назначение проекта
+## Project Purpose
 
-Backup Project — программа резервного копирования, предназначенная для создания
-и хранения актуальной копии пользовательских данных с сохранением предыдущих
-состояний.
+Backup Project is a backup application designed to create and maintain an up-to-date copy of user data while preserving previous states.
 
-Основные цели архитектуры:
+The main architectural goals are:
 
-- безопасность пользовательских данных;
-- простота восстановления;
-- понятная модульная структура;
-- независимость логики резервного копирования от пользовательского интерфейса.
+- user data safety;
+- straightforward recovery;
+- a clear modular structure;
+- independence of backup logic from the user interface.
 
 ---
 
-# Структура проекта
+# Project Structure
 
-Пользователь выбирает только корневой каталог проекта.
+The user selects only the root project directory.
 
-Внутренняя структура создаётся и поддерживается программой автоматически.
+The internal structure is created and maintained automatically by the application.
 
-```
+```text
 BackupProject/
 ├── Current/
 └── History/
 ```
 
-Названия каталогов `Current` и `History` являются частью архитектуры проекта и
-не изменяются пользователем.
+The directory names `Current` and `History` are part of the project architecture and cannot be changed by the user.
 
 ---
 
 # Current
 
-Каталог `Current` всегда содержит **полный снимок (Snapshot)** каталога Source
-на момент последнего успешного резервного копирования.
+The `Current` directory always contains a **full snapshot** of the `Source` directory as it was at the time of the last successful backup.
 
-После успешного завершения резервного копирования содержимое `Current`
-полностью соответствует содержимому Source.
+After a backup completes successfully, the contents of `Current` fully match the contents of `Source`.
 
-`Current` никогда не содержит частично обновлённых данных.
+`Current` never contains partially updated data.
 
 ---
 
 # History
 
-Каталог `History` хранит предыдущие состояния каталога `Current`.
+The `History` directory stores previous states of the `Current` directory.
 
-Перед обновлением `Current` его предыдущее состояние сохраняется в `History`
-как отдельный снимок.
+Before `Current` is updated, its previous state is saved in `History` as a separate snapshot.
 
-Количество сохраняемых снимков ограничивается настройкой `MAX_HISTORY`.
+The number of retained snapshots is limited by the `MAX_HISTORY` setting.
 
-Перед сохранением нового snapshot выполняется очистка старых snapshot в соответствии с настройкой MAX_HISTORY.
-
----
-
-## Обработка ошибок при очистке History
-
-При удалении старых snapshot программа различает ситуации в зависимости
-от причины невозможности удаления.
-
-### Snapshot уже отсутствует
-
-Если snapshot, выбранный для удаления, уже отсутствует, программа не считает
-это критической ошибкой.
-
-`cleanup_history()` повторно анализирует каталог `History`, формирует актуальный
-список snapshot и продолжает работу с новым состоянием каталога.
-
-Повторный анализ учитывает только каталоги, соответствующие формату snapshot.
-
-### Snapshot существует, но удалить его невозможно
-
-Если удаление snapshot завершается `PermissionError`, программа не пытается
-самостоятельно изменить права доступа или повторять операцию.
-
-Ошибка передаётся на верхний уровень программы.
-
-`app.py` останавливает текущий запуск резервного копирования и сообщает
-пользователю о проблеме.
-
-Текст пользовательского сообщения хранится в `messages.py`.
-
-Бизнес-логика модулей резервного копирования не содержит кода
-взаимодействия с пользователем.
+Before a new snapshot is saved, old snapshots are cleaned up according to the `MAX_HISTORY` setting.
 
 ---
 
-## Имена snapshot
+## Error Handling During History Cleanup
 
-Каждый snapshot, создаваемый программой, получает имя в формате:
+When deleting old snapshots, the application distinguishes between situations based on why deletion is not possible.
+
+### Snapshot No Longer Exists
+
+If a snapshot selected for deletion no longer exists, the application does not treat this as a critical error.
+
+`cleanup_history()` rechecks the `History` directory, builds an up-to-date list of snapshots, and continues using the directory's current state.
+
+The recheck includes only directories whose names match the snapshot naming format.
+
+### Snapshot Exists but Cannot Be Deleted
+
+If deleting a snapshot raises `PermissionError`, the application does not attempt to change access permissions or retry the operation.
+
+The error is propagated to the top level of the application.
+
+`app.py` stops the current backup run and informs the user about the problem.
+
+The user-facing message is stored in `messages.py`.
+
+The business logic in the backup modules does not contain user-interaction code.
+
+---
+
+## Snapshot Names
+
+Each snapshot created by the application is named using the following format:
 
 ```text
 %Y-%m-%d_%H-%M-%S
 ```
 
-Например:
+For example:
 
 ```text
 2026-08-13_18-42-17
 ```
 
-При работе с `History` программа распознаёт snapshot по соответствию имени этому формату.
+When working with `History`, the application identifies snapshots by checking whether their names match this format.
 
-В подсчёте `MAX_HISTORY`, сортировке и удалении участвуют только каталоги, имена которых соответствуют формату snapshot.
+Only directories whose names match the snapshot format are included when counting `MAX_HISTORY`, sorting snapshots, and deleting them.
 
-Другие файлы и каталоги, находящиеся в `History`, не считаются snapshot и программой не удаляются.
+Other files and directories located in `History` are not considered snapshots and are not deleted by the application.
 
-Если snapshot, выбранный для удаления, уже отсутствует, программа повторно анализирует `History` и продолжает работу с актуальным состоянием каталога.
+If a snapshot selected for deletion no longer exists, the application rechecks `History` and continues using the directory's current state.
 
 ---
 
-# Типы хранилища
+# Storage Types
 
-Backup Project поддерживает несколько типов хранилищ назначения.
+Backup Project supports several destination storage types:
 
 - Local Disk
 - External USB Drive
 - Network Storage (NAS)
 
-Для каждого типа могут выполняться собственные проверки доступности.
+Each type may have its own availability checks.
 
-После успешного завершения проверки дальнейшая логика резервного копирования
-остаётся одинаковой независимо от типа хранилища.
+After the checks succeed, the remaining backup logic is the same regardless of the storage type.
 
 ---
 
-# Жизненный цикл резервного копирования
+# Backup Lifecycle
 
-Каждое резервное копирование состоит из последовательности независимых этапов.
+Each backup consists of a sequence of independent stages.
 
-```
-Проверка конфигурации
+```text
+Configuration check
         ↓
-Подготовка структуры проекта
+Project structure preparation
         ↓
-Проверка хранилища
+Storage validation
         ↓
-Проверка свободного места
+Free disk space check
         ↓
-Проверка Current
+Current validation
         ↓
-Сохранение Current → History
+Save Current → History
         ↓
-Проверка snapshot
+Snapshot verification
         ↓
-Очистка Current
+Clear Current
         ↓
-Копирование Source → Current
+Copy Source → Current
         ↓
-Проверка Current
+Current verification
         ↓
-Завершение
-
+Completion
 ```
 
-Каждый этап отвечает только за собственную задачу.
+Each stage is responsible only for its own task.
 
 ---
 
-# Сравнение Source и Current
+# Comparing Source and Current
 
-Сравнение `Source` и `Current` используется для анализа состояния данных.
+The comparison of `Source` and `Current` is used to analyze the state of the data.
 
-Сравнение не определяет, какие файлы будут копироваться.
+The comparison does not determine which files will be copied.
 
-Backup Project создаёт полный новый снимок `Source`, поэтому после сохранения
-предыдущего состояния `Current` в `History` каталог `Current` полностью
-обновляется содержимым `Source`.
+Backup Project creates a complete new snapshot of `Source`. Therefore, after the previous state of `Current` has been saved to `History`, the `Current` directory is fully updated with the contents of `Source`.
 
-Результаты сравнения могут использоваться для:
+Comparison results can be used for:
 
-- определения новых файлов;
-- определения удалённых файлов;
-- определения изменённых файлов;
-- анализа совпадающих файлов;
-- расчёта объёма данных;
-- формирования журнала резервного копирования;
-- отображения информации пользователю.
+- identifying new files;
+- identifying deleted files;
+- identifying modified files;
+- analyzing matching files;
+- calculating data size;
+- generating a backup log;
+- displaying information to the user.
 
-Механизм сравнения является частью архитектуры проекта и предназначен для
-дальнейшего развития функций анализа и журналирования.
+The comparison mechanism is part of the project architecture and is intended to support the future development of analysis and logging features.
 
-В основной последовательности резервного копирования версии `1.1`
-результаты сравнения не используются для выбора файлов для копирования.
+In the main backup workflow of version `1.1`, comparison results are not used to select files for copying.
 
 ---
 
-# Ответственность модулей
+# Module Responsibilities
 
 ## app.py
 
-Координирует выполнение программы.
+Coordinates application execution.
 
-Отвечает за последовательность выполнения этапов.
+Controls the order in which stages are performed.
 
-Не содержит специализированной логики резервного копирования.
+Does not contain specialized backup logic.
 
 ---
 
 ## backup_manager.py
 
-Реализует алгоритм резервного копирования.
+Implements the backup algorithm.
 
-Координирует отдельные этапы процесса.
+Coordinates the individual stages of the process.
 
 ---
 
 ## project_initializer.py
 
-Подготавливает рабочую структуру проекта.
+Prepares the project's working structure.
 
-Создаёт отсутствующие каталоги:
+Creates missing directories:
 
-- BackupProject
-- Current
-- History
+- `BackupProject`
+- `Current`
+- `History`
 
 ---
 
 ## storage_validator.py
 
-Проверяет готовность выбранного типа хранилища.
+Checks whether the selected storage type is ready for use.
 
 ---
 
 ## history_manager.py
 
-Управляет каталогом `History`.
+Manages the `History` directory.
 
-Отвечает за хранение и удаление старых снимков.
+Is responsible for retaining and deleting old snapshots.
 
 ---
 
 ## messages.py
 
-Хранит все пользовательские сообщения программы.
+Stores all user-facing application messages.
 
-Не содержит логики резервного копирования.
+Does not contain backup logic.
 
-Подготавливает проект к будущей локализации.
+Prepares the project for future localization.
 
 ---
 
-# Поток данных
+# Data Flow
 
-Основной поток резервного копирования в версии BackupProject_1.1:
+The main backup workflow in BackupProject version `1.1` is:
 
 ```text
 Source
     │
     ▼
-Проверка конфигурации
+Configuration check
     │
     ▼
-Подготовка структуры проекта
+Project structure preparation
     │
     ▼
-Проверка хранилища
+Storage validation
     │
     ▼
-Расчёт необходимого свободного места
+Calculate required free space
     │
     ▼
-Проверка свободного места
+Free disk space check
     │
     ▼
-Проверка Current
+Validate Current
     │
-    ├── Current пуст
+    ├── Current is empty
     │       │
     │       ▼
-    │   Пропуск сохранения в History
+    │   Skip saving to History
     │
-    └── Current содержит файлы
+    └── Current contains files
             │
             ▼
-        Сохранение Current → History
+        Save Current → History
             │
             ▼
-        Проверка snapshot
+        Snapshot verification
             │
             ▼
-        Очистка Current
+        Clear Current
             │
             ▼
-        Копирование Source → Current
+        Copy Source → Current
             │
             ▼
-        Проверка Current
+        Current verification
             │
             ▼
-        Завершение
-
+        Completion
 ```
 
-Каждая функция получает результат предыдущего этапа и отвечает только за одну
-обязанность.
+Each function receives the result of the previous stage and is responsible for only one task.
 
-Это уменьшает связность между модулями и упрощает сопровождение проекта.
+This reduces coupling between modules and makes the project easier to maintain.
 
-### Проверка свободного места»
+### Free Disk Space Check
 
-Проверка свободного места выполняется до начала любых изменений в каталогах Current и History.
+The free disk space check is performed before any changes are made to the `Current` and `History` directories.
 
-Если свободного места недостаточно, резервное копирование не начинается, а существующие резервные копии остаются без изменений.
+If there is not enough free space, the backup does not start, and existing backups remain unchanged.
 
-Проверка свободного места сравнивает:
+The free disk space check compares:
 
-объём данных, необходимых для создания новой резервной копии;
-объём свободного места на целевом носителе.
+- the amount of data required to create the new backup;
+- the amount of free space on the destination drive.
 
-В случае нехватки свободного места дальнейшие действия определяются пользовательским интерфейсом (Console / GUI).
+If there is not enough free space, further actions are determined by the user interface (Console / GUI).
 
-### Раздел «Current и History»
+### Current and History
 
-Current является рабочим снимком последнего резервного копирования.
+`Current` is the working snapshot from the most recent backup.
 
-После успешного сохранения Current в History каталог Current очищается и создаётся заново из Source.
+After `Current` has been saved successfully to `History`, the `Current` directory is cleared and recreated from `Source`.
 
-Если во время создания нового Current происходит ошибка, существующие резервные копии в History остаются неизменными.
+If an error occurs while the new `Current` snapshot is being created, the existing backups in `History` remain unchanged.
 
-### Раздел «Очистка Current»
+### Clearing Current
 
-Обновление каталога `Current` выполняется как отдельный этап резервного копирования.
+Updating the `Current` directory is a separate stage of the backup process.
 
-Перед очисткой программа должна успешно завершить сохранение текущего снимка в `History` и подтвердить его корректность.
+Before clearing it, the application must successfully save the current snapshot to `History` and verify that the snapshot is valid.
 
-Очистка `Current` удаляет только его содержимое.
+Clearing `Current` removes only its contents.
 
-Сам каталог `Current` не удаляется и остаётся частью структуры проекта.
+The `Current` directory itself is not deleted and remains part of the project structure.
 
-После завершения очистки каталог `Current` существует и готов к созданию нового полного снимка Source.
+After clearing is complete, the `Current` directory still exists and is ready for a new full snapshot of `Source`.
 
-### Раздел «Восстановление после прерванного копирования»
+### Recovery After an Interrupted Copy
 
-При запуске резервного копирования программа проверяет состояние Current.
+When a backup starts, the application checks the state of `Current`.
 
-Если Current отсутствует, пуст или повреждён, он не переносится в History.
+If `Current` is missing, empty, or corrupted, it is not moved to `History`.
 
-В этом случае программа создаёт новый Current непосредственно из Source.
+In this case, the application creates a new `Current` directly from `Source`.
 
-## Общие модели данных
+## Shared Data Models
 
-Общие структуры данных проекта размещаются в отдельном модуле `project_dataclasses.py`.
+Shared project data structures are defined in a separate module, `project_dataclasses.py`.
 
-В модуле находятся dataclass, используемые несколькими подсистемами проекта.
+The module contains dataclasses used by multiple project subsystems.
 
-На текущий момент:
+Currently, these are:
 
-- SpaceInfo;
-- DiskSpaceInfo;
-- VerificationResult.
+- `SpaceInfo`
+- `DiskSpaceInfo`
+- `VerificationResult`
 
-Это позволяет избежать дублирования структур данных и уменьшить связанность между модулями.
+This avoids duplicating data structures and reduces coupling between modules.
 
-## Универсальные файловые операции
+## General File Operations
 
-Кроме сканирования файлов модуль содержит универсальные операции работы с каталогами.
+In addition to scanning files, the module contains general-purpose directory operations.
 
-На текущий момент:
+Currently, these are:
 
-- scan_files()
-- get_directory_size()
+- `scan_files()`
+- `get_directory_size()`
 
-В модуле также реализована универсальная функция `verify_directories()`.
+The module also implements the general-purpose function `verify_directories()`.
 
-## Проверка каталогов
+## Directory Verification
 
-Проверка каталогов является универсальной операцией проекта.
+Directory verification is a general-purpose project operation.
 
-Она не зависит от назначения каталогов и может использоваться для проверки:
+It does not depend on the purpose of the directories and can be used to verify:
 
-- Source ↔ Current;
-- Current ↔ History snapshot;
-- других каталогов проекта.
+- `Source` ↔ `Current`;
+- `Current` ↔ a `History` snapshot;
+- other project directories.
 
-Проверка включает:
+Verification includes:
 
-1. существование каталога;
-2. совпадение структуры файлов;
-3. совпадение общего размера.
+1. checking that the directory exists;
+2. checking that the file structure matches;
+3. checking that the total size matches.
 
-Результатом проверки является объект VerificationResult.
+The result of verification is a `VerificationResult` object.
